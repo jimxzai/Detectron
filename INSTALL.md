@@ -78,7 +78,10 @@ Check that Detectron tests pass (e.g. for [`SpatialNarrowAsOp test`](detectron/t
 python $DETECTRON/detectron/tests/test_spatial_narrow_as_op.py
 ```
 # tested from pycharm
-
+<div align="center">
+  <img src="demo/output/33823288584_1d21cf0a26_k_example_output.jpg" width="700px" />
+  <p>Example Mask R-CNN output.</p>
+</div>
 
 ## That's All You Need for Inference
 
