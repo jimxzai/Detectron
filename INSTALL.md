@@ -77,6 +77,8 @@ Check that Detectron tests pass (e.g. for [`SpatialNarrowAsOp test`](detectron/t
 ```
 python $DETECTRON/detectron/tests/test_spatial_narrow_as_op.py
 ```
+# tested from pycharm
+
 
 ## That's All You Need for Inference
 
