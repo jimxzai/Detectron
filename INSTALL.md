@@ -20,6 +20,9 @@ To install Caffe2 with CUDA support, follow the [installation instructions](http
 
 Please ensure that your Caffe2 installation was successful before proceeding by running the following commands and checking their output as directed in the comments.
 
+As of today 10/18/2018, the nightly build of pytorch has fixed the buggy issue. which works fine with Ubuntu release, For Caffe2 with CUDA 9 and CuDNN 7 support:
+     conda install pytorch-nightly -c pytorch
+
 ```
 # To check if Caffe2 build was successful
 python -c 'from caffe2.python import core' 2>/dev/null && echo "Success" || echo "Failure"
@@ -120,10 +123,21 @@ Run the image (e.g. for [`BatchPermutationOp test`](detectron/tests/test_batch_p
 ```
 nvidia-docker run --rm -it detectron:c2-cuda9-cudnn7 python detectron/tests/test_batch_permutation_op.py
 ```
+# run from inside of the docker
+
+python tools/infer_simple.py --cfg configs/12_2017_baselines/e2e_mask_rcnn_R-101-FPN_2x.yaml --output-dir demo/output --image-ext jpg --wts model_final.pkl demo
+
+# run from outside of docker
 
 ## Troubleshooting
 
 In case of Caffe2 installation problems, please read the troubleshooting section of the relevant Caffe2 [installation instructions](https://caffe2.ai/docs/getting-started.html) first. In the following, we provide additional troubleshooting tips for Caffe2 and Detectron.
+## Docker-compose
+we also tried docker-compose:
+docker-compose.yml
+Dockerfile
+running command:
+
 
 ### Caffe2 Operator Profiling
 
