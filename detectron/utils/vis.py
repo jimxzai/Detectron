@@ -20,24 +20,25 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import cv2
-import numpy as np
 import os
 
+import cv2
+import numpy as np
 import pycocotools.mask as mask_util
 
-from detectron.utils.colormap import colormap
 import detectron.utils.env as envu
 import detectron.utils.keypoints as keypoint_utils
+from detectron.utils.colormap import colormap
 
 # Matplotlib requires certain adjustments in some environments
 # Must happen before importing matplotlib
 envu.set_up_matplotlib()
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 plt.rcParams['pdf.fonttype'] = 42  # For editing in Adobe Illustrator
-
 
 _GRAY = (218, 227, 218)
 _GREEN = (18, 127, 15)
@@ -104,7 +105,7 @@ def vis_mask(img, mask, col, alpha=0.4, show_border=True, border_thick=1):
     img[idx[0], idx[1], :] += alpha * col
 
     if show_border:
-        _, contours, _ = cv2.findContours(
+        contours, _ = cv2.findContours(
             mask.copy(), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
         cv2.drawContours(img, contours, -1, _WHITE, border_thick, cv2.LINE_AA)
 
@@ -156,14 +157,14 @@ def vis_keypoints(img, kps, kp_thresh=2, alpha=0.7):
 
     # Draw mid shoulder / mid hip first for better visualization.
     mid_shoulder = (
-        kps[:2, dataset_keypoints.index('right_shoulder')] +
-        kps[:2, dataset_keypoints.index('left_shoulder')]) / 2.0
+                           kps[:2, dataset_keypoints.index('right_shoulder')] +
+                           kps[:2, dataset_keypoints.index('left_shoulder')]) / 2.0
     sc_mid_shoulder = np.minimum(
         kps[2, dataset_keypoints.index('right_shoulder')],
         kps[2, dataset_keypoints.index('left_shoulder')])
     mid_hip = (
-        kps[:2, dataset_keypoints.index('right_hip')] +
-        kps[:2, dataset_keypoints.index('left_hip')]) / 2.0
+                      kps[:2, dataset_keypoints.index('right_hip')] +
+                      kps[:2, dataset_keypoints.index('left_hip')]) / 2.0
     sc_mid_hip = np.minimum(
         kps[2, dataset_keypoints.index('right_hip')],
         kps[2, dataset_keypoints.index('left_hip')])
@@ -253,7 +254,7 @@ def vis_one_image_opencv(
 def vis_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
         kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=False,
-        ext='pdf', out_when_no_box=False):
+        ext='jpg', out_when_no_box=False):
     """Visual debugging of detections."""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -284,7 +285,7 @@ def vis_one_image(
     ax.imshow(im)
 
     if boxes is None:
-        sorted_inds = [] # avoid crash when 'boxes' is None
+        sorted_inds = []  # avoid crash when 'boxes' is None
     else:
         # Display in largest to smallest order to reduce occlusion
         areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
@@ -309,7 +310,7 @@ def vis_one_image(
             ax.text(
                 bbox[0], bbox[1] - 2,
                 get_class_string(classes[i], score, dataset),
-                fontsize=3,
+                fontsize=10,
                 family='serif',
                 bbox=dict(
                     facecolor='g', alpha=0.4, pad=0, edgecolor='none'),
@@ -363,14 +364,14 @@ def vis_one_image(
 
             # add mid shoulder / mid hip for better visualization
             mid_shoulder = (
-                kps[:2, dataset_keypoints.index('right_shoulder')] +
-                kps[:2, dataset_keypoints.index('left_shoulder')]) / 2.0
+                                   kps[:2, dataset_keypoints.index('right_shoulder')] +
+                                   kps[:2, dataset_keypoints.index('left_shoulder')]) / 2.0
             sc_mid_shoulder = np.minimum(
                 kps[2, dataset_keypoints.index('right_shoulder')],
                 kps[2, dataset_keypoints.index('left_shoulder')])
             mid_hip = (
-                kps[:2, dataset_keypoints.index('right_hip')] +
-                kps[:2, dataset_keypoints.index('left_hip')]) / 2.0
+                              kps[:2, dataset_keypoints.index('right_hip')] +
+                              kps[:2, dataset_keypoints.index('left_hip')]) / 2.0
             sc_mid_hip = np.minimum(
                 kps[2, dataset_keypoints.index('right_hip')],
                 kps[2, dataset_keypoints.index('left_hip')])
@@ -389,6 +390,35 @@ def vis_one_image(
                     line, color=colors[len(kp_lines) + 1], linewidth=1.0,
                     alpha=0.7)
 
-    output_name = os.path.basename(im_name) + '.' + ext
-    fig.savefig(os.path.join(output_dir, '{}'.format(output_name)), dpi=dpi)
+    # Detectron processes each image using matpyplot
+    # change figure to numpy data to visualized
+    image = fig2data(fig)
+    image = image[..., ::-1]
+
+    cv2.imshow("img", image)
+    cv2.waitKey(1)
+
+    # output_name = os.path.basename(im_name) + '.' + ext
+    # fig.savefig(os.path.join(output_dir, '{}'.format(output_name)), dpi=dpi)
     plt.close('all')
+
+
+def fig2data(fig):
+    """
+    @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
+    @param fig a matplotlib figure
+    @return a numpy 3D array of RGBA values
+    """
+    # draw the renderer
+    fig.canvas.draw()
+
+    # Get the RGBA buffer from the figure
+    w, h = fig.canvas.get_width_height()
+    buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+    buf.shape = (h, w, 4)
+
+    # canvas.tostring_argb give pixmap in ARGB mode. Roll the ALPHA channel to have it in RGBA mode
+    buf = np.roll(buf, 3, axis=2)
+    buf = buf[:, :, :3]
+
+    return buf
